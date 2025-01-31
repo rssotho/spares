@@ -1,0 +1,188 @@
+name: Django CI
+on:
+
+  push:
+
+    branches:
+    - development
+    
+  pull_request:
+    branches: 
+    - vue_staging
+    - staging
+    - production
+ 
+env:
+  SECRET_KEY: ${{ secrets.SECRET_KEY}} 
+  SERVER_HOST: ${{ secrets.SERVER_HOST}}
+  DEBUG: ${{ secrets.DEBUG}}
+  
+  DB_NAME: ${{ secrets.DB_NAME}} 
+  DB_USER: ${{ secrets.DB_USER}} 
+  DB_HOST: ${{ secrets.DB_HOST}} 
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD}} 
+  DB_PORT: ${{ secrets.DB_PORT}} 
+  
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID}}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+  
+  S3_PATH: ${{ secrets.COMPANY_PATH}}
+  
+  IDENTITY_POOL_REGION: ${{ secrets.IDENTITY_POOL_REGION}}
+  AWS_STORAGE_BUCKET_REGION: ${{ secrets.AWS_STORAGE_BUCKET_REGION}}
+  AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME}}
+  IDENTITY_POOL_ID: ${{ secrets.IDENTITY_POOL_ID}}
+  DATA_INPUT_FORM_FILE_ANSWER: ${{ secrets.DATA_INPUT_FORM_ANSWER}}
+  DATA_INPUT_FORM_SIGNATURE_PATH: ${{ secrets.DATA_INPUT_FORM_SIGNATURE_PATH}}
+  
+  AWS_TRANSFER_PORT: ${{secrets.AWS_TRANSFER_PORT}}
+  AWS_TRANSFER_SSH_KEY_PASSPHRASE: ${{secrets.AWS_TRANSFER_SSH_KEY_PASSPHRASE}}
+  AWS_TRANSFER_REGION_NAME: ${{ secrets.AWS_TRANSFER_REGION_NAME}}
+  AWS_TRANSFER_SERVER_ID: ${{ secrets.AWS_TRANSFER_SERVER_ID}}
+  AWS_TRANSFER_USERNAME: ${{ secrets.AWS_TRANSFER_USERNAME}}
+  AWS_TRANSFER_ENDPOINT: ${{ secrets.AWS_TRANSFER_ENDPOINT}}
+  
+  AWS_GLUE_REGION: ${{ secrets.AWS_GLUE_REGION}}
+  AWS_GLUE_ROLE : ${{ secrets.AWS_GLUE_ROLE}}
+  ATHENA_BUCKET: ${{ secrets.ATHENA_BUCKET}}
+  AWS_GLUE_DATABASE: ${{ secrets.AWS_GLUE_DATABASE}}
+  AWS_GLUE_CATALOG_ID: ${{ secrets.AWS_GLUE_CATALOG_ID}}
+  AWS_GLUE_CATALOG_NAME: ${{ secrets.AWS_GLUE_CATALOG_NAME}}
+  
+  REPLICATION_INSTANCE_ARN: ${{ secrets.REPLICATION_INSTANCE_ARN}}
+  TARGET_ENDPOINT_ARN: ${{ secrets. TARGET_ENDPOINT_ARN}}
+  
+  SUPERSET_USERNAME: ${{ secrets.SUPERSET_USERNAME}}
+  SUPERSET_PASSWOR0D: ${{ secrets. SUPERSET_PASSWOR0D}}
+  GENERAL_ACCOUNT: ${{ secrets.GENERAL_ACCOUNT}}
+  GENERAL_ACCOUNT_SECRET: ${{ secrets.GENERAL_ACCOUNT_SECRET}}
+  SUPERSET_URL: ${{ secrets.SUPERSET_URL}}
+  SUPERSET_KEY: ${{ secrets. SUPERSET_KEY}}
+  
+  LAMBDA_ARN: ${{secrets.LAMBDA_AR}}
+  
+  VERIFY_USERNAME: ${{ secrets.VERIFY_USERNAME}}
+  VERIFY_PASSWORD: ${{ secrets. VERIFY_PASSWORD}}
+  DUMMY_PASSWORD: ${{ secrets.DUMMY_PASSWORD}}
+  VERIFY_DOMAIN: ${{ secrets.VERIFY_DOMAIN}}
+  
+  ADDRESS_SEARCH: ${{secrets.ADDRESS_SEARCH}}
+  INCOME_ESTIMATOR: ${{secrets.INCOME_ESTIMATOR}}
+  ID_VERIFICATION_ENDPOINT: ${{secrets.ID_VERIFICATION_ENDPOINT}}
+  DIRECTOR_SEARCH_ENDPOINT: ${{secrets.DIRECTOR_SEARCH_ENDPOINT}}
+  COMPANY_INFO_SEARCH: ${{secrets.COMPANY_INFO_SEARCH}}
+  ADDRESS_VERIFICATION: ${{secrets.ADDRESS_VERIFICATION}}
+  BANCK_ACCOUNT_COMPANY_VERIFICATION: ${{secrets.BANCK_ACCOUNT_COMPANY_VERIFICATION}}
+  BANCK_ACCOUNT_INDIVIDUAL_VERIFICATION: ${{ secrets.BANCK_ACCOUNT_INDIVIDUAL_VERIFICATION}}
+  CIPC_SEARCH_ENDPOINT: ${{secrets.CIPC_SEARCH_ENDPOINT}}
+  
+  TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER}}
+  AUTH_TOKEN: ${{secrets.AUTH_TOKEN}}
+  ACCOUNT_SID: ${{secrets.ACCOUNT_SID}}
+  SENDGRID_API_KEY: ${{secrets.SENDGRID_API_KEY}}
+
+  GOOGLE_KEY: ${{secrets. GOOGLE_KEY}}
+
+  BIG_QUERY_PROJECT_ID: ${{ secrets.BIG_QUERY_PROJECT_ID}}
+  BIG_QUERY_DATASET_ID: ${{ secrets.BIG_QUERY_DATASET_ID}}
+  CREDENTIALS_PATH: ${{ secrets.CREDENTIALS_PATH}}
+  
+  MODEL_URL: ${{ secrets.MODEL_URL}}
+
+  TOKEN: ${{ secrets.TOKEN}}
+  BAKER: ${{ secrets.BAKER}}
+  ACCOUNTKEY: ${{ secrets.ACCOUNTKEY}}
+
+  VITE_GLOBAL_URL: ${{ secrets.VITE_GLOBAL_URL}}
+  SPARK_CLUSTER_SC: ${{secrets.SPARK_CLUSTER_SC}}
+
+
+
+jobs:
+
+  job1:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ['3.9']
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r proba-backend/requirements.txt
+    - name: Install pre commit & Bandit
+      run: |
+        pip install bandit
+        pip install pre-commit
+    - name: Run Bandit
+      run: bandit -r . -ll
+    - name: Install safety
+      run: |
+        pip install safety
+    - name: Run safety check
+      run: |
+        safety check --ignore=70612
+    - name: Run pylint-django
+      run: |
+            pylint --ignore=static --ignore=templates --ignore=migrations */ --disable=E1101
+            continue-on-error: true
+
+    - name: Run Tests
+      run: |
+        python manage.py test --noinput
+        python manage.py check --deploy
+
+    - name: Upload coverage reports to Codecov
+      run: |
+        codecov/codecov-action@v3
+ 
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ['3.10']
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r proba-backend/requirements.txt
+    - name: Install pre commit & Bandit
+      run: |
+        pip install bandit
+        pip install pre-commit
+    - name: Run Bandit
+      run: bandit -r . -ll
+    - name: Install safety
+      run: |
+        pip install safety
+    - name: Run safety check
+      run: |
+        safety check --ignore=70612
+    - name: Run pylint-django
+      run: |
+            pylint --ignore=static --ignore=templates --ignore=migrations */ --disable=E1101
+            continue-on-error: true
+
+    - name: Run Tests
+      run: |
+        python manage.py test --noinput
+        python manage.py check --deploy
+
+    - name: Upload coverage reports to Codecov
+      run: |
+        codecov/codecov-action@v3
