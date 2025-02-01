@@ -1,8 +1,10 @@
 from django.utils import timezone
 
 from product_management.models import(
+    Product,
     Category,
-    CategoryProfile
+    ProductProfile,
+    CategoryProfile,
 )
 from system_management.models import User
 
@@ -21,8 +23,11 @@ class ProductManagenentPackages:
         category_profile_id: CategoryProfile = None,
 
         # Product
+        price: float = None,
+        product_id: int = None,
         total_items: int = None,
         product_name: str = None,
+        product_profile_id: int = None,
 
     ) -> None:
 
@@ -35,12 +40,30 @@ class ProductManagenentPackages:
         self.category_profile_id = category_profile_id
 
         # Product
+        self.price = price
+        self.product_id = product_id
         self.total_items = total_items
         self.product_name = product_name
+        self.product_profile_id = product_profile_id
+
+    def get_user(self) -> User:
+
+        user: User = User.objects.get(
+            id = self.user_id
+        )
+
+        if not user:
+
+            raise ValueError('User does not exist')
+
+        return user
 
     def create_category(self) -> Category:
 
+        user = self.get_user()
+
         category:Category = Category.objects.create(
+            user_id = user.id,
             date_created = timezone.now(),
             date_modified = timezone.now(),
             description = self.description,
@@ -55,9 +78,9 @@ class ProductManagenentPackages:
 
     def get_category(self) -> Category:
 
-        category: Category = Category.objects.filter(
+        category: Category = Category.objects.get(
             id = self.category_id
-        ).first()
+        )
 
         if not category:
 
@@ -65,27 +88,15 @@ class ProductManagenentPackages:
 
         return category
 
-    def get_user(self) -> User:
-
-        user: User = User.objects.filter(
-            id = self.user_id
-        ).first()
-
-        if not user:
-
-            raise ValueError('User does not exist')
-
-        return user
-
     def create_category_profile(self) -> CategoryProfile:
 
-        user_id = self.get_user()
         category_id = self.get_category()
 
         category_profile: CategoryProfile = CategoryProfile.objects.create(
             file_url = self.file_url,
-            category_id = category_id,
-            user_id = user_id
+            category_id = category_id.id,
+            date_created = timezone.now(),
+            date_modified = timezone.now(),
         )
 
         if not category_profile:
@@ -108,9 +119,9 @@ class ProductManagenentPackages:
 
     def get_category_profile(self) -> CategoryProfile:
 
-        category_profile: CategoryProfile = CategoryProfile.objects.filter(
+        category_profile: CategoryProfile = CategoryProfile.objects.get(
             id = self.category_profile_id
-        ).first()
+        )
 
         if not category_profile:
 
@@ -125,18 +136,98 @@ class ProductManagenentPackages:
         category_profile.file_url = self.file_url
         category_profile.date_modified = timezone.now()
 
+        category_profile.save()
 
+        return category_profile
 
+    def create_product(self) -> Product:
 
+        user = self.get_user()
+        category = self.get_category()
 
+        product: Product = Product.objects.create(
+            user_id = user.id,
+            price = self.price,
+            category = category,
+            date_created = timezone.now(),
+            date_modified = timezone.now(),
+            description = self.description,
+            total_items = self.total_items,
+            product_name = self.product_name,
+        )
 
+        if not product:
 
+            raise ValueError('Failed to create product, please try again')
 
+        return product
 
+    def get_products(self) -> Product:
 
+        products = Product.objects.get(
+            id = self.product_id
+        )
 
+        if not products:
 
+            raise ValueError('No products found')
 
+        return products
+
+    def edit_product(self) -> Product:
+
+        product = self.get_products()
+
+        product.price = self.price
+        product.product_name = self.product_name
+        product.description = self.description
+        product.total_items = self.total_items
+        product.date_modified = timezone.now()
+
+        product.save()
+
+        return product
+
+    def view_categories(self) -> Category:
+
+        category: Category = Category.objects.all()
+
+        return category
+
+    def view_products(self) -> Product:
+
+        products: Product = Product.objects.all()
+
+        return products
+
+    def create_product_profile(self) -> ProductProfile:
+
+        product: Product = self.get_products()
+
+        product_profile: ProductProfile = ProductProfile.objects.create(
+            product_id = product.id,
+            file_url = self.file_url,
+            date_created = timezone.now(),
+            date_modified = timezone.now(),
+        )
+
+        if not product_profile:
+
+            raise ValueError('Failed to create the upload product profile')
+
+        return product_profile
+
+    def get_product_profile(self) -> ProductProfile:
+
+        product_profile: ProductProfile = ProductProfile.objects.get(
+            id = self.product_profile_id
+        )
+
+        if not product_profile:
+
+            raise ValueError('Product does not exist')
+
+        return product_profile
 
 
 
