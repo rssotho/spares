@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your OTP Code</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .email-wrapper {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 40px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo img {
+        max-width: 150px;
+        height: auto;
+      }
+      .content {
+        text-align: center;
+      }
+      h1 {
+        color: #333333;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      p {
+        color: #666666;
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 25px;
+      }
+      .otp-code {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        font-size: 32px;
+        font-weight: bold;
+        letter-spacing: 8px;
+        color: #333333;
+        margin: 30px 0;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eeeeee;
+        color: #999999;
+        font-size: 14px;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background-color: #4b0202;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-top: 20px;
+      }
+      .warning {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="email-wrapper">
+        <div class="logo">
+          <img src="./logo/logo.png" alt="Company Logo" />
+        </div>
+        <div class="content">
+          <h1>Verification OTP</h1>
+          <p>Hello {{last_name}} {{first_name}},</p>
+          <p>
+            You have requested to verify your identity. Please use the following
+            OTP (One-Time Password) to complete your verification. This OTP will
+            expire in 15 minutes.
+          </p>
+
+          <div class="otp-code">{{otp_code}}</div>
+
+          <p>
+            If you didn't request this verification, please ignore this email or
+            contact our support team if you have concerns.
+          </p>
+
+          <a href="#" class="button">Verify Account</a>
+
+          <p class="warning">
+            Never share this OTP with anyone. Our team will never ask for your
+            OTP.
+          </p>
+        </div>
+        <div class="footer">
+          <p>
+            This is an automated message, please do not reply to this email.
+          </p>
+          <p>&copy; 2024 Spares Company. All rights reserved.</p>
+          <p>
+            Belfast Trust <br />
+            <a href="mailto:support@yourcompany.com">rssotho@gmail.com</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

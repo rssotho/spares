@@ -7,7 +7,7 @@ class SignUpSerializer(serializers.Serializer):
     password = serializers.CharField()
     last_name = serializers.CharField()
     first_name = serializers.CharField()
-    phone_number = serializers.IntegerField()
+    phone_number = serializers.CharField()
 
 
 class LoginSerializer(serializers.Serializer):
@@ -70,10 +70,7 @@ class CreateUserSerializer(serializers.Serializer):
 
 class EditUserSerializer(serializers.Serializer):
 
-    email = serializers.EmailField(
-        required=False,
-        allow_null=True
-    )
+    email = serializers.EmailField()
     user_id = serializers.CharField(
         max_length = 255
     )
@@ -86,10 +83,7 @@ class EditUserSerializer(serializers.Serializer):
     role = serializers.CharField(
         max_length = 255
     )
-    phone_number = serializers.CharField(
-        required=False,
-        allow_null=True
-    )
+    phone_number = serializers.CharField()
 
 
 class ResendOTPSerializer(serializers.Serializer):

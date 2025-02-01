@@ -96,6 +96,20 @@ def create_otp(request):
     constant.CUSTOMER,
     constant.SYSTEM_ADMIN,
 )
+def send_otp(request):
+
+    response = UserManagementServices(
+        request = request
+    ).send_otp()
+
+    return response
+
+
+@api_view(['POST'])
+@roles_required(
+    constant.CUSTOMER,
+    constant.SYSTEM_ADMIN,
+)
 def resend_otp(request):
 
     response = UserManagementServices(
@@ -197,7 +211,7 @@ def view_customer(request):
     return response
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @roles_required(
     constant.CUSTOMER,
     constant.SYSTEM_ADMIN,

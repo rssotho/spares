@@ -29,7 +29,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 
 SHARED_APPS = [
@@ -75,7 +74,7 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 
 TENANT_MODEL = "client.Client"
 TENANT_DOMAIN_MODEL = "client.Domain"
-# AUTH_USER_MODEL = 'system_management.User'
+AUTH_USER_MODEL = 'system_management.User'
 
 # Middleware
 
@@ -144,6 +143,9 @@ DATABASES = {
         'PASSWORD': DB_PASSWORD,
         'PORT': DB_PORT,
         'HOST': DB_HOST,
+        'OPTIONS': {
+            'options': '-c search_path=spares,public'
+        }
     },
 }
 
@@ -191,3 +193,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# System URLs
+
+GLOBAL_FRONTEND_URL = config('GLOBAL_FRONTEND_URL')
+
+# Send Grid
+
+FROM_EMAIL = config('FROM_EMAIL')
+SENDGRID_API_KEY = config('SENDGRID_API_KEY')

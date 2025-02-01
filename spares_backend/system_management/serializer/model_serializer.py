@@ -6,7 +6,7 @@ from system_management.models import (
 )
 
 
-class ViewProfileModelSerializer(serializers.Serializer):
+class ViewProfileModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile

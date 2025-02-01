@@ -1,9 +1,13 @@
 import json
 import string
-import random
 import secrets
+import threading
 
-from datetime import datetime
+from datetime import (
+    timedelta
+)
+
+from decouple import config
 
 from django.utils import timezone
 from django.contrib.auth import (
@@ -16,6 +20,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from global_app import constants as constant
+from global_app.send_email import send_email_api
+
 from system_management.packages.user_management import UserManagementPackage
 from system_management.serializer.base_serializer import (
     LoginSerializer,
@@ -40,10 +46,20 @@ class UserManagementServices:
 
     def __init__(
         self,
-        request
+        request,
+        global_frontend_url = config('GLOBAL_FRONTEND_URL')
     ):
 
         self.request = request
+        self.global_frontend_url = global_frontend_url
+
+    @staticmethod
+    def generate_password():
+
+        characters = string.ascii_letters + string.digits + string.punctuation
+        password = ''.join(secrets.choice(characters) for _ in range(8))
+
+        return password
 
     @staticmethod
     def generate_otp():
@@ -55,7 +71,7 @@ class UserManagementServices:
     @staticmethod
     def generate_time():
 
-        expires_at = timezone.now() + datetime.timedelta(minutes = 10)
+        expires_at = timezone.now() + timedelta(minutes = 15)
 
         return expires_at
 
@@ -83,7 +99,31 @@ class UserManagementServices:
         first_name: str = validated_data.get('first_name')
         phone_number: int = validated_data.get('phone_number')
 
+        role = UserManagementPackage().get_role()
+
         try:
+
+            check_email = UserManagementPackage(
+                email = email
+            ).check_email()
+
+            if check_email:
+
+                response_data = json.dumps({
+                    'status': 'error',
+                    'message': 'Email already exists, please provide a different email'
+                })
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+            check_phone_number = UserManagementPackage(phone_number = phone_number).check_phone_number()
+
+            if check_phone_number:
+
+                response_data = json.dumps({
+                    'status': 'error',
+                    'message': 'Phone Number already exists, please provide a different phone number'
+                })
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
             UserManagementPackage(
                 email = email,
@@ -91,7 +131,7 @@ class UserManagementServices:
                 last_name = last_name,
                 first_name = first_name,
                 phone_number = phone_number,
-                role_id = constant.CUSTOMER
+                role_id = role.id
             ).sign_up()
 
             response_data = json.dumps({
@@ -238,13 +278,25 @@ class UserManagementServices:
 
         try:
 
+            existing_profile = UserManagementPackage(
+                user = user.id
+            ).get_profile()
+
+            if existing_profile:
+
+                response_data = json.dumps({
+                    'status': 'error', 
+                    'message': 'Profile already exists for this user'
+                })
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
             UserManagementPackage(
                 town = town,
-                race_id = race,
-                user_id = user,
-                gender_id = gender,
-                country_id = country,
-                province_id = province,
+                race = race,
+                user = user.id,
+                gender = gender,
+                country = country,
+                province = province,
                 postal_code = postal_code,
                 street_address = street_address
             ).create_profile()
@@ -296,11 +348,11 @@ class UserManagementServices:
 
             UserManagementPackage(
                 town = town,
-                race_id = race,
-                user_id = user,
-                gender_id = gender,
-                country_id = country,
-                province_id = province,
+                race = race,
+                user = user.id,
+                gender = gender,
+                country = country,
+                province = province,
                 postal_code = postal_code,
                 street_address = street_address
             ).edit_profile()
@@ -325,14 +377,14 @@ class UserManagementServices:
 
         user = self.request.user
 
-        user_profile = UserManagementPackage(
-            user = user
-        ).get_user()
+        profile = UserManagementPackage(
+            user = user.id
+        ).get_profile()
 
         try:
 
             model_serializer: ViewProfileModelSerializer = ViewProfileModelSerializer(
-                user_profile,
+                profile,
                 many = False
             )
 
@@ -361,7 +413,7 @@ class UserManagementServices:
 
         one_time_pin = UserManagementPackage(
             user = user.id
-        ).filter_user()
+        ).get_user_otp()
 
         if one_time_pin:
 
@@ -383,11 +435,11 @@ class UserManagementServices:
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         one_time_pin = UserManagementPackage(
-            user = user,
-            attempts=0,
+            user = user.id,
+            attempts = 0,
             is_used = False,
-            otp_code=otp_code,
-            expires_at=expires_at
+            otp_code = otp_code,
+            expires_at = expires_at
         ).create_otp()
 
         response_data = json.dumps({
@@ -398,6 +450,57 @@ class UserManagementServices:
             }
         })
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def send_otp(self):
+
+        user = self.request.user
+
+        user_otp = UserManagementPackage(
+            user = user.id
+        ).get_user_otp()
+
+        try:
+
+            html_tpl_path = "otp_email.html"
+            receiver_email = [user.email]
+
+            context_data = {
+                "email": user.email,
+                "last_name": user.last_name,
+                "first_name": user.first_name,
+                "otp_code": user_otp.otp_code,
+                "login_url": self.global_frontend_url,
+            }
+
+            subject = f"Verification OTP - Spares"
+
+            data_json = json.dumps({
+                "html_tpl_path": html_tpl_path,
+                "receiver_email": receiver_email,
+                "context_data": context_data,
+                "subject": subject,
+            })
+
+            thread = threading.Thread(target=send_email_api, args=(data_json,))
+            thread.start()
+
+            response_data = json.dumps({
+                'status': 'success',
+                'message': 'OTP sent successfull',
+                'data': {
+                    'one_time_pin': user_otp.otp_code,
+                }
+            })
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as message:
+
+            response_data = json.dumps({
+                'status': 'error',
+                'message': 'Failed to send OTP',
+                'data': str(message)
+            })
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     def create_user(self):
 
@@ -423,7 +526,7 @@ class UserManagementServices:
         first_name: str = validated_data.get('first_name')
         phone_number: str = validated_data.get('phone_number')
 
-        if not email and not phone_number:
+        if not (email or phone_number):
 
             response_data = json.dumps({
                 'status': 'error',
@@ -455,20 +558,15 @@ class UserManagementServices:
             })
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        role_package = UserManagementPackage(
-            role = role
-        ).get_roles()
-
-        # password = self.generate_password()
-        password = '12345'
+        password = self.generate_password()
 
         try:
 
             UserManagementPackage(
                 email = email,
+                role_id = role,
                 password = password,
                 last_name = last_name,
-                role = role_package.id,
                 first_name = first_name,
                 phone_number = phone_number,
             ).create_user()
@@ -514,57 +612,13 @@ class UserManagementServices:
         first_name: str = validated_data.get('first_name')
         phone_number: str = validated_data.get('phone_number')
 
-        if not email and not phone_number:
-
-            response_data = json.dumps({
-                'status': 'error',
-                'message': 'Please provide either email or phone number',
-            })
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-        user_email = UserManagementPackage(
-            email = email
-        ).check_email()
-
-        if user_email:
-
-            response_data = json.dumps({
-                'status': 'error',
-                'message': 'The provided email already exist, please enter a different email'
-            })
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-        user_phone_number = UserManagementPackage(
-            phone_number = phone_number
-        ).check_phone_number()
-
-        if user_phone_number:
-
-            response_data = json.dumps({
-                'status': 'error',
-                'message': 'The provided phone number already exist, please enter a different phone number'
-            })
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-        role_package = UserManagementPackage(
-            role = role
-        ).get_role()
-
-        if self.request.user.role.role in [constant.SYSTEM_ADMIN]:
-
-            user_id = user_id
-
-        else:
-
-            user_id = self.request.user.id
-
         try:
 
             UserManagementPackage(
-                user = user_id,
                 email = email,
+                role_id = role,
+                user = user_id,
                 last_name = last_name,
-                role = role_package,
                 first_name = first_name,
                 phone_number = phone_number,
             ).edit_user()
@@ -642,17 +696,18 @@ class UserManagementServices:
     def resend_otp(self):
 
         data = self.request.data
-        serializer: ResendOTPSerializer = ResendOTPSerializer(
+
+        serializer:ResendOTPSerializer = ResendOTPSerializer(
             data = data
         )
 
         if not serializer.is_valid():
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
                 'message': 'Invalid request to API',
                 'data': serializer.errors
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data: dict = serializer.validated_data
@@ -660,10 +715,10 @@ class UserManagementServices:
 
         if not username:
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'info',
                 'message': 'Email or Phone number is required',
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -671,47 +726,46 @@ class UserManagementServices:
             if '@' in username:
 
                 user = UserManagementPackage(
-                    email=username
+                    email = username
                 ).get_user_email()
 
             else:
 
                 user = UserManagementPackage(
-                        phone_number=username
-                    ).get_user_phone_number()
+                    phone_number = username
+                ).get_user_phone_number()
 
         except Exception as message:
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
-                'message': 'Please provide the necessary details',
+                'message': 'Failed to fetch user details',
                 'data': str(message)
-            })
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         otp_code = self.generate_otp()
         expires_at = self.generate_time()
 
         one_time_pin = UserManagementPackage(
             user = user.id
-        ).filter_user()
+        ).get_user_otp()
 
         if one_time_pin:
 
-            one_time_pin.otp_code = otp_code
             one_time_pin.attempts = 0
             one_time_pin.is_used = False
+            one_time_pin.otp_code = otp_code
             one_time_pin.expires_at = expires_at
-
             one_time_pin.save()
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'success',
-                'message': 'One Time Pin is updated Successfully',
+                'message': 'One Time Pin updated successfully',
                 'data': {
                     'one_time_pin': one_time_pin.otp_code,
                 }
-            })
-            return Response(response_data, status=status.HTTP_200_OK)
+            }
 
         else:
 
@@ -723,14 +777,15 @@ class UserManagementServices:
                 expires_at = expires_at
             ).create_otp()
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'success',
-                'message': 'One Time Pin is created Successfully',
+                'message': 'One Time Pin created successfully',
                 'data': {
                     'one_time_pin': one_time_pin.otp_code,
                 }
-            })
-            return Response(response_data, status=status.HTTP_200_OK)
+            }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def verify_otp(self):
 
@@ -743,70 +798,64 @@ class UserManagementServices:
 
         if not serializer.is_valid():
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
                 'message': 'Invalid request to API',
                 'data': serializer.errors
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        validated_data: dict = serializer.validated_data
+        validated_data:dict = serializer.validated_data
         otp_code: int = validated_data.get('otp_code')
 
         otp_for_user = UserManagementPackage(
             user = user.id
-        ).filter_user()
-
-        if otp_for_user is None:
-
-            response_data = json.dumps({
-                'status': 'error',
-                'message': 'No valid OTP found for the requesting user'
-            })
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        ).get_user_otp()
 
         if otp_for_user.is_used:
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
                 'message': 'The provided OTP is already used, please request another OTP'
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        time = timezone.now()
+        current_time = timezone.now()
 
-        if time > otp_for_user.expires_at:
+        if current_time > otp_for_user.expires_at:
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
-                'message': 'The provided OTP is already expired, please request another OTP'
-            })
+                'message': 'The provided OTP is expired, please request another OTP'
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         if otp_for_user.attempts >= 5:
 
-            response_data = json.dumps({
+            response_data = {
                 'status': 'error',
                 'message': 'The provided OTP has reached the maximum attempts, please request another OTP'
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         if otp_for_user.otp_code != otp_code:
 
-            response_data = json.dumps({
+            otp_for_user.attempts += 1
+            otp_for_user.save()
+
+            response_data = {
                 'status': 'error',
                 'message': 'The provided OTP is invalid, please request another OTP'
-            })
+            }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         otp_for_user.is_used = True
-
         otp_for_user.save()
 
-        response_data = json.dumps({
+        response_data = {
             'status': 'success',
             'message': 'The provided OTP is verified successfully'
-        })
+        }
         return Response(response_data, status=status.HTTP_200_OK)
 
     def user_logout(self):
@@ -1036,13 +1085,6 @@ class UserManagementServices:
                 'data': str(message)
             })
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
 
 
 

@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from rest_framework.authtoken.models import Token
 
 from system_management.models import (
@@ -29,8 +31,7 @@ class UserManagementPackage:
         otp_code: int = None,
         is_used: bool = None,
         attempts: int = None,
-        expires_at: str = None,
-        date_created: str = None,
+        expires_at: timezone = None,
 
         # Profile
         race: Race = None,
@@ -58,7 +59,6 @@ class UserManagementPackage:
         self.otp_code = otp_code
         self.attempts = attempts
         self.expires_at = expires_at
-        self.date_created = date_created
 
         # Profle
         self.race = race
@@ -72,9 +72,9 @@ class UserManagementPackage:
 
     def get_role(self) -> Role:
 
-        role = Role.objects.filter(
-            id = self.role_id
-        ).first()
+        role: Role = Role.objects.get(
+            role = constant.CUSTOMER
+        )
 
         if not role:
 
@@ -84,11 +84,9 @@ class UserManagementPackage:
 
     def sign_up(self) -> User:
 
-        role_id = self.get_role()
-
         sign_up = User.objects.create_user(
-            role_id = role_id,
             email = self.email,
+            role_id = self.role_id,
             password = self.password,
             last_name = self.last_name,
             first_name = self.first_name,
@@ -145,19 +143,21 @@ class UserManagementPackage:
 
         return user
 
-    def filter_user(self) -> OneTimePin:
+    def get_user_otp(self) -> OneTimePin:
 
         user = self.get_user()
 
-        otp_user = OneTimePin.objects.filter(
-            user = user
-            ).first()
+        try:
 
-        if not otp_user:
+            otp_user = OneTimePin.objects.get(
+                user = user
+            )
 
-            raise ValueError('User does not exist')
+            return otp_user
 
-        return otp_user
+        except OneTimePin.DoesNotExist:
+
+            return None
 
     def create_otp(self) -> OneTimePin:
 
@@ -169,6 +169,7 @@ class UserManagementPackage:
             otp_code = self.otp_code,
             attempts = self.attempts,
             expires_at = self.expires_at,
+            date_created = timezone.now()
         )
 
         return one_time_pin
@@ -199,13 +200,15 @@ class UserManagementPackage:
 
     def get_country(self) -> Country:
 
-        country = Country.objects.get(
+        country: Country = Country.objects.get(
             id = self.country
         )
 
-        if country is None:
+        if not country:
 
             raise ValueError ('Country does not exist')
+
+        return country
 
     def get_province(self) -> Province:
 
@@ -228,12 +231,12 @@ class UserManagementPackage:
         province = self.get_province()
 
         profile = Profile.objects.create(
-            user_id = user,
-            race_id = race,
+            user = user,
+            race = race,
+            gender = gender,
             town = self.town,
-            gender_id = gender,
-            country_id = country,
-            province_id = province,
+            country = country,
+            province = province,
             postal_code = self.postal_code,
             street_address = self.street_address,
         )
@@ -244,26 +247,26 @@ class UserManagementPackage:
 
         return profile
 
-    def filter_profile(self) -> Profile:
+    def get_profile(self) -> Profile:
 
         user = self.get_user()
 
-        user_profile:Profile = Profile.objects.filter(
+        profile: Profile = Profile.objects.get(
             user_id = user
-        ).first()
+        )
 
-        if not user_profile:
+        if not profile:
 
             raise ValueError('User does not have profile')
 
-        return user_profile
+        return profile
 
     def edit_profile(self) -> Profile:
 
         race = self.get_race()
+        user = self.get_profile()
         gender = self.get_gender()
         country = self.get_country()
-        user = self.filter_profile()
         province = self.get_province()
 
         user.race = race
@@ -280,18 +283,16 @@ class UserManagementPackage:
 
     def create_user(self) -> User:
 
-        role = self.get_role()
+        role = self.get_roles()
 
-        user_details = User.objects.create(
-            role = role,
+        user_details = User.objects.create_user(
+            role_id = role.id,
             password = self.password,
             email = self.email or None,
             last_name = self.last_name,
             first_name = self.first_name,
             phone_number = self.phone_number or None,
         )
-        user_details.set_password(self.password)
-        user_details.save()
 
         if not user_details:
 
@@ -302,7 +303,7 @@ class UserManagementPackage:
     def edit_user(self) -> User:
 
         user = self.get_user()
-        role = self.get_role()
+        role = self.get_roles()
 
         user.role = role
         user.email = self.email
@@ -396,4 +397,17 @@ class UserManagementPackage:
 
         return user
 
+    def get_roles(self) -> Role:
+
+        try:
+
+            role: Role = Role.objects.get(
+                id = self.role_id
+            )
+
+            return role
+
+        except Role.DoesNotExist:
+
+            raise ValueError ('Role does not exist')
 
