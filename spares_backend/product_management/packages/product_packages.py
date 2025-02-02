@@ -229,7 +229,16 @@ class ProductManagenentPackages:
 
         return product_profile
 
+    def edit_product_profile(self) -> ProductProfile:
 
+        product_profile = self.get_product_profile()
+
+        product_profile.file_url = self.file_url
+        product_profile.date_modified = timezone.now()
+
+        product_profile.save()
+
+        return product_profile
 
 
 

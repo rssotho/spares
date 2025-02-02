@@ -3,7 +3,8 @@ from rest_framework import serializers
 from product_management.models import (
     Product,
     Category,
-    CategoryProfile
+    ProductProfile,
+    CategoryProfile,
 )
 
 
@@ -48,7 +49,15 @@ class ViewProductModelSerializer(serializers.ModelSerializer):
         )
 
 
+class ViewProductProfileModelSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = ProductProfile
+        fields = (
+            'id',
+            'file_url',
+            'product_id'
+        )
 
 
 

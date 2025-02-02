@@ -13,12 +13,14 @@ from product_management.serializer.base_serializer import (
     EditCategorySerializer,
     CreateProductSerializer,
     CreateCategorySerializer,
+    GetProductProfileSerializer,
     GetCategoryProfileSerializer,
 )
 
 from product_management.serializer.model_serializer import (
     ViewProductModelSerializer,
     ViewCategoryModelSerializer,
+    ViewProductProfileModelSerializer,
     ViewCategoryProfileModelSerializer,
 )
 
@@ -220,7 +222,7 @@ class ProductManagementServices:
 
             response_data = json.dumps({
                 'status': 'success',
-                'message': 'Category is fetched successfully',
+                'message': 'Category proile is fetched successfully',
                 'data': model_serializer.data
             })
             return Response(response_data, status=status.HTTP_200_OK)
@@ -229,7 +231,7 @@ class ProductManagementServices:
 
             response_data = json.dumps({
                 'status': 'error',
-                'message': 'Failed to fetch category',
+                'message': 'Failed to fetch category profile',
                 'data': str(message)
             })
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -299,7 +301,6 @@ class ProductManagementServices:
     def edit_product(self):
 
         data = self.request.data
-        user = self.request.user
 
         serializer: EditProductSerializer = EditProductSerializer(
             data = data
@@ -316,10 +317,12 @@ class ProductManagementServices:
 
         validated_data:dict = serializer.validated_data
         price: float = validated_data.get('price')
-        description: str = validated_data.get('description')
+        file_url: str = validated_data.get('file_url')
         product_id: int = validated_data.get('product_id')
+        description: str = validated_data.get('description')
         total_items: int = validated_data.get('total_items')
         product_name: str = validated_data.get('product_name')
+        product_profile_id: int = validated_data.get('product_profile_id')
 
         try:
 
@@ -330,6 +333,13 @@ class ProductManagementServices:
                 total_items = total_items,
                 product_name = product_name
             ).edit_product()
+
+            if file_url:
+
+                ProductManagenentPackages(
+                    file_url = file_url,
+                    product_profile_id = product_profile_id,
+                ).edit_product_profile()
 
             response_data = json.dumps({
                 'status': 'success',
@@ -448,6 +458,52 @@ class ProductManagementServices:
             })
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+    def view_product_profile(self):
+
+        data = self.request.data
+
+        serializer: GetProductProfileSerializer = GetProductProfileSerializer(
+            data = data
+        )
+
+        if not serializer.is_valid():
+
+            response_data = json.dumps({
+                'status': 'error',
+                'message': 'Invalied request to API',
+                'data': serializer.errors
+            })
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data:dict = serializer.validated_data
+        product_profile_id: int = validated_data.get('product_profile_id')
+
+        try:
+
+            product: ProductManagenentPackages = ProductManagenentPackages(
+                product_profile_id = product_profile_id
+            ).get_product_profile()
+
+            model_serializer: ViewProductProfileModelSerializer = ViewProductProfileModelSerializer(
+                instance = product,
+                many = False
+            )
+
+            response_data = json.dumps({
+                'status': 'success',
+                'message': 'Product profile is fetched successfully',
+                'data': model_serializer.data
+            })
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as message:
+
+            response_data = json.dumps({
+                'status': 'error',
+                'message': 'Failed to fetch product profile',
+                'data': str(message)
+            })
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 

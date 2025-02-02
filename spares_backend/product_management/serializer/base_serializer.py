@@ -51,6 +51,10 @@ class EditProductSerializer(serializers.Serializer):
     product_name = serializers.CharField()
     product_id = serializers.IntegerField()
     total_items = serializers.IntegerField()
+    file_url = serializers.URLField(
+        required = False
+    )
+    product_profile_id = serializers.IntegerField()
 
 
 class GetProductSerializer(serializers.Serializer):
@@ -58,6 +62,9 @@ class GetProductSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
 
 
+class GetProductProfileSerializer(serializers.Serializer):
+
+    product_profile_id = serializers.IntegerField()
 
 
 

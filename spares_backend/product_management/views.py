@@ -127,3 +127,16 @@ def view_products(request):
 
     return response
 
+
+@api_view(['GET'])
+@roles_required(
+    constant.CUSTOMER,
+    constant.SYSTEM_ADMIN,
+)
+def view_product_profile(request):
+
+    response = ProductManagementServices(
+        request = request
+    ).view_product_profile()
+
+    return response
