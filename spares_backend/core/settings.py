@@ -198,15 +198,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # System URLs
 
 GLOBAL_FRONTEND_URL = config('GLOBAL_FRONTEND_URL')
-
-# Send Grid
-
-FROM_EMAIL = config('FROM_EMAIL')
-SENDGRID_API_KEY = config('SENDGRID_API_KEY')
-
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'support@epftechhubic.org'
