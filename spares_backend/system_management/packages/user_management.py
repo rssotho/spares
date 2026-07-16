@@ -73,7 +73,7 @@ class UserManagementPackage:
     def get_role(self) -> Role:
 
         role: Role = Role.objects.get(
-            role = constant.CUSTOMER
+            id = self.role_id
         )
 
         if not role:
@@ -86,9 +86,9 @@ class UserManagementPackage:
 
         sign_up = User.objects.create_user(
             email = self.email,
-            role_id = self.role_id,
             password = self.password,
             last_name = self.last_name,
+            role_id = constant.CUSTOMER,
             first_name = self.first_name,
             phone_number = self.phone_number
         )
@@ -103,15 +103,15 @@ class UserManagementPackage:
 
         if self.email:
 
-            user: User = User.objects.filter(
-                email=self.email
-            ).first()
+            user: User = User.objects.get(
+                email = self.email
+            )
 
         elif self.phone_number:
 
-            user: User = User.objects.filter(
-                phone_number=self.phone_number
-            ).first()
+            user: User = User.objects.get(
+                phone_number = self.phone_number
+            )
 
         if not user:
 
@@ -122,10 +122,10 @@ class UserManagementPackage:
     def create_token(self, user: User) -> Token:
 
         token, _ = Token.objects.get_or_create(
-            user=user
+            user = user
         )
 
-        if token is None:
+        if not token:
 
             raise ValueError('The requesting user does not have the token')
 
@@ -169,8 +169,11 @@ class UserManagementPackage:
             otp_code = self.otp_code,
             attempts = self.attempts,
             expires_at = self.expires_at,
-            date_created = timezone.now()
         )
+
+        if not one_time_pin:
+
+            raise ValueError('Failed to create the otp')
 
         return one_time_pin
 
@@ -180,7 +183,7 @@ class UserManagementPackage:
             id = self.race
         )
 
-        if race is None:
+        if not race:
 
             raise ValueError ('Race does not exist')
 
@@ -192,7 +195,7 @@ class UserManagementPackage:
             id = self.gender
         )
 
-        if gender is None:
+        if not gender:
 
             raise ValueError ('Gender does not exist')
 
@@ -216,7 +219,7 @@ class UserManagementPackage:
             id = self.province
         )
 
-        if province is None:
+        if not province:
 
             raise ValueError ('Province does not exist')
 
@@ -261,7 +264,7 @@ class UserManagementPackage:
 
         return profile
 
-    def edit_profile(self) -> Profile:
+    def update_profile(self) -> Profile:
 
         race = self.get_race()
         user = self.get_profile()
@@ -300,7 +303,7 @@ class UserManagementPackage:
 
         return user_details
 
-    def edit_user(self) -> User:
+    def update_user(self) -> User:
 
         user = self.get_user()
         role = self.get_roles()
@@ -331,71 +334,15 @@ class UserManagementPackage:
 
         return user_phone_number
 
-    def filter_customer_role(self) -> Role:
-
-        user_role: Role = Role.objects.get(
-            role = constant.CUSTOMER
-        )
-
-        return user_role
-
-    def filter_admin_role(self) -> Role:
-
-        user_role: Role = Role.objects.get(
-            role = constant.SYSTEM_ADMIN
-        )
-
-        return user_role
-
-    def view_customer(self) -> User:
-
-        role = self.filter_customer_role()
-
-        user:User = User.objects.filter(
-            role_id = role
-        ).all()
-
-        return user
-
     def view_users(self) -> User:
 
         users: User = User.objects.all()
 
+        if not users:
+
+            return []
+
         return users
-
-    def view_admin(self) -> User:
-
-        role = self.filter_admin_role()
-
-        user:User = User.objects.filter(
-            role_id = role
-        ).all()
-
-        return user
-
-    def get_user_email(self) -> User:
-
-        user: User = User.objects.filter(
-            email = self.email
-        ).first()
-
-        if user is None:
-
-            raise ValueError ('User with the provide email does not exist, please enter a correct email')
-
-        return user
-
-    def get_user_phone_number(self) -> User:
-
-        user: User = User.objects.filter(
-            phone_number = self.phone_number
-        ).first()
-
-        if user is None:
-
-            raise ValueError ('User with the provide phone number does not exist, please enter a correct phone number')
-
-        return user
 
     def get_roles(self) -> Role:
 

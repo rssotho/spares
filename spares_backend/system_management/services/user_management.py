@@ -99,8 +99,6 @@ class UserManagementServices:
         first_name: str = validated_data.get('first_name')
         phone_number: int = validated_data.get('phone_number')
 
-        role = UserManagementPackage().get_role()
-
         try:
 
             check_email = UserManagementPackage(
@@ -131,7 +129,6 @@ class UserManagementServices:
                 last_name = last_name,
                 first_name = first_name,
                 phone_number = phone_number,
-                role_id = role.id
             ).sign_up()
 
             response_data = json.dumps({

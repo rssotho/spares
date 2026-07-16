@@ -3,7 +3,7 @@ Handle the email sending services required by the web application.
 """
 import json
 
-import boto3
+# import boto3
 from decouple import config
 from django.conf import settings
 from django.core.mail import EmailMessage

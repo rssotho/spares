@@ -89,13 +89,14 @@ class User(AbstractBaseUser):
     password = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    is_first_time_login = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
-    phone_number = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
+    role = models.ForeignKey(Role, on_delete=models.PROTECT)
 
     REQUIRED_FIELDS = ['first_name', 'last_name']
     USERNAME_FIELD = 'email'
@@ -125,7 +126,6 @@ class Gender(models.Model):
 class Race(models.Model):
 
     race = models.CharField(max_length=255)
-    other_race = models.CharField(max_length=255)
 
 
 class OneTimePin(models.Model):
@@ -150,3 +150,8 @@ class Profile(models.Model):
     gender = models.ForeignKey(Gender, on_delete=models.PROTECT)
     country = models.ForeignKey(Country, on_delete=models.PROTECT)
     province = models.ForeignKey(Province, on_delete=models.PROTECT)
+
+
+class Title(models.Model):
+
+    title = models.CharField(max_length=255)

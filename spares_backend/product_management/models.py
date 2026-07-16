@@ -23,7 +23,7 @@ class Category(models.Model):
     )
 
 
-class CategoryProfile(models.Model):
+class CategoryPicture(models.Model):
 
     file_url = models.URLField(
         blank = True
@@ -49,7 +49,7 @@ class Product(models.Model):
         max_length = 255
     )
     total_items = models.IntegerField()
-    price = models.FloatField()
+    price = models.DecimalField(max_digits=5, decimal_places=2)
     date_created = models.DateTimeField(
         auto_now_add = True
     )
@@ -66,7 +66,7 @@ class Product(models.Model):
     )
 
 
-class ProductProfile(models.Model):
+class ProductPicture(models.Model):
 
     file_url = models.URLField()
     date_created = models.DateTimeField(
